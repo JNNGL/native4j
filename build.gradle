@@ -1,0 +1,86 @@
+plugins {
+    id("java")
+    // id("checkstyle")
+    // id("com.github.spotbugs").version("5.0.6")
+    // id("org.cadixdev.licenser").version("0.6.1")
+    // id("com.github.johnrengelman.shadow").version("7.1.2")
+    id("maven-publish")
+}
+
+setGroup("com.jnngl")
+setVersion("1.0.0-SNAPSHOT")
+
+compileJava {
+    getOptions().setEncoding("UTF-8")
+}
+
+java {
+    setSourceCompatibility(JavaVersion.VERSION_1_8)
+    setTargetCompatibility(JavaVersion.VERSION_1_8)
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    testImplementation(platform("org.junit:junit-bom:$junitVersion"))
+    testImplementation("org.junit.jupiter:junit-jupiter")
+
+    compileOnly("com.github.spotbugs:spotbugs-annotations:$spotbugsVersion")
+
+    implementation("org.ow2.asm:asm:9.5")
+}
+
+test {
+    useJUnitPlatform()
+}
+
+tasks.register("javadocJar", Jar) {
+    getArchiveClassifier().set("javadoc")
+    from(javadoc)
+}
+
+javadoc {
+    MinimalJavadocOptions options = getOptions()
+    options.setEncoding("UTF-8")
+    options.setCharSet("UTF-8")
+    // Mark sources as Java 8 source compatible.
+    options.setSource("8")
+    options.links("https://docs.oracle.com/javase/8/docs/api/")
+
+    options.addStringOption("Xdoclint:none", "-quiet")
+}
+
+tasks.register("sourcesJar", Jar) {
+    getArchiveClassifier().set("sources")
+    from(sourceSets.main.getAllSource())
+}
+
+publishing {
+    repositories {
+        maven {
+            credentials {
+                setUsername(System.getenv("PUBLISH_USERNAME"))
+                setPassword(System.getenv("PUBLISH_PASSWORD"))
+            }
+
+            setName("private-repo")
+            setUrl("https://maven.jnngl.me/private/")
+        }
+    }
+
+    publications {
+        maven(MavenPublication) {
+            from(components.java)
+
+            artifact(javadocJar)
+            artifact(sourcesJar)
+        }
+    }
+}
+
+artifacts {
+    archives(javadocJar)
+    archives(sourcesJar)
+}
